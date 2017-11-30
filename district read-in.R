@@ -206,25 +206,37 @@ temp6 <- read.table(file='rainlag.txt', sep="")
 ggplot(temp6, aes(x=rain2w, y=cases)) + geom_point()
 
 # Poisson Modeling
+library(lme4)
 m1 <- glm(cases ~ rain2w + DISTCODE + offset(log(u5total)), data=temp6, family="poisson")
 
-m3 <- glm(cases ~ raintot + rain2w + rain4w + rain8w + District + offset(log(u5total)),
-          data=temp6, family = "poisson")
-
+m3 <- lmer(cases ~ rain2w + (rain2w|District) + rain4w + (rain4w|District) + rain8w
+           + (rain8w|District) + (1|District) + offset(log(u5total)), data=temp6)
+week2 <- lmer(cases ~ rain2w + (1|District) + offset(log(u5total)),
+          data=temp6)
+week4 <- lmer(cases ~ rain4w + (1|District) + offset(log(u5total)),
+          data=temp6)
+week8 <- lmer(cases ~ rain8w + (1|District) + offset(log(u5total)),
+          data=temp6)
 library(car) ## For Anova
-
+summary(m3)
 Anova(m3)
 
-library(effects)
-plot(all.effects(m1))
-ggplot(temp6, aes(x=rain2w, y=incidence, group=DISTCODE))+
+pred_2 <- predict(week2, type="response")
+
+#library(effects)
+plot(allEffects(m3))
+ggplot(temp6, aes(x=rain2w, y=incidence))+
   stat_smooth(method = 'glm', family = 'poisson', 
-              formula = incidence ~ rain2w + DISTCODE, data = temp6) +
+              formula = incidence ~ rain2w + (1|DISTCODE), data = temp6) +
   geom_smooth(col='red', se=F) + geom_point()
 
-m1$model$fitted <- predict(m1, type='response')
+plot(temp6$rain2w, temp6$cases)
+lines(pred_2, col= 'blue')
 
-ggplot(m1$model) + geom_line(aes(rain2w, fitted))
-
-ggplot(temp6, aes(Epiweek, incidence)) + geom_smooth()
-
+#debug(utils:::unpackPkgZip)
+#install.packages('multcomp')
+library(multcomp)
+tmp <- as.data.frame(confint(glht(week2))$confint)
+tmp$Comparison <- rownames(tmp)
+ggplot(tmp, aes(x = Comparison, y = Estimate, ymin = lwr, ymax = upr)) +
+  geom_errorbar() + geom_point()

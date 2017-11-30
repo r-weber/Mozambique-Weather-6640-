@@ -24,18 +24,17 @@ h <- ggplot(temp6, aes(y = cases))+
   theme_minimal()
 h
 
-# # cool but not useful
-# library(tidyr)
-# temp6 %>% tidyr::gather("id", "value", 20:22) %>%
-#   ggplot(., aes(value, cases, color = id)) + 
-#   geom_smooth(aes(y=raintot*20, color = "Rainfall")) + 
-#   scale_y_continuous(sec.axis = sec_axis(~./20, name = "Total Rainfall"))
-# 
-# geom_smooth() +
-#   facet_wrap(~id)
+# cool but not useful
+library(tidyr)
+temp6 %>% tidyr::gather("id", "value", 20:22) %>%
+  ggplot(., aes(value, cases, color = id)) +
+  #geom_smooth(aes(y=raintot*20, color = "Rainfall")) +
+  #scale_y_continuous(sec.axis = sec_axis(~./20, name = "Total Rainfall")) +
+  geom_smooth() +
+  facet_wrap(~id)
 
 year_2016 <- temp6[temp6$year == 2016,]
-ggplot(year_2016, aes(Epiweek, cases)) +
+ggplot(year_2016, aes(Epiweek, cases, group = DISTCODE)) +
   geom_smooth(aes(rain2w, cases), colour="red") +
   geom_smooth(aes(rain4w, cases), colour="purple") + 
   geom_smooth(aes(rain8w, cases), colour="goldenrod")
@@ -77,3 +76,11 @@ spplot(polydat2, "rain4w", main = "Rainfall 4 Weeks Prior", sub = "2016 week 2")
 spplot(polydat2, "rain2w", main = "Rainfall 2 Weeks Prior", sub = "2016 week 2")
 spplot(polydat, "incidence", main = "Incidence", sub = "2016 week 26")
 spplot(polydat2, "incidence", main = "Incidence", sub = "2016 week 2")
+
+# plot interventions applied in a year
+uses_IRS <- all[!is.na(all$IRSprot),]
+uses_ITN <- uses_IRS[!is.na(uses_IRS$ITNprot),]
+apps <- rbind(uses_IRS, uses_ITN)
+poly3 <- poly1[poly1$DISTCODE %in% apps$DISTCODE,]
+
+polydat3 <- SpatialPolygonsDataFrame(poly3, apps)
