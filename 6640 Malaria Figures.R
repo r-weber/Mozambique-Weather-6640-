@@ -1,7 +1,7 @@
 ############################################
 # Figures for Report
 # Author: Rachel Weber
-# Date: November 29, 2017
+# Date: December 4, 2017
 ############################################
 
 # this file contains all of the figures I need for the Mozambique malaria report
@@ -17,13 +17,6 @@ p <- p + labs(y = "Cases", x = "Epidemiological Week", colour = "Legend")
 p <- p + theme_minimal() + ggtitle("Seasonal Trends") + scale_x_continuous(breaks = seq(1,52,8))
 p
 
-h <- ggplot(temp6, aes(y = cases))+
-  geom_smooth(aes(x=rain2w))+
-  geom_smooth(aes(x=rain4w))+
-  geom_smooth(aes(x=rain8w))+
-  theme_minimal()
-h
-
 # cool but not useful
 library(tidyr)
 temp6 %>% tidyr::gather("id", "value", 20:22) %>%
@@ -33,11 +26,13 @@ temp6 %>% tidyr::gather("id", "value", 20:22) %>%
   geom_smooth() +
   facet_wrap(~id)
 
-year_2016 <- temp6[temp6$year == 2016,]
-ggplot(year_2016, aes(Epiweek, cases, group = DISTCODE)) +
-  geom_smooth(aes(rain2w, cases), colour="red") +
-  geom_smooth(aes(rain4w, cases), colour="purple") + 
-  geom_smooth(aes(rain8w, cases), colour="goldenrod")
+# Lag variables predicting incidence
+ggplot(temp6, aes(x=rain2w, y=cases, color = '2 weeks')) +
+  geom_smooth(se=F, size=1.5) +
+  geom_smooth(aes(x=rain4w, y=cases, color = '4 weeks'), se=F, size=1.5) +
+  geom_smooth(aes(x=rain8w, y=cases, color = '8 weeks'), se=F, size=1.5) +
+  scale_fill_manual(name = "Lag") +
+  scale_color_manual(values = c('dodgerblue', 'cyan4', 'darkorchid'))
 
 #############################################################
 # maps
@@ -54,12 +49,17 @@ library(lattice)
 library(latticeExtra) # For layer()
 library(rgdal)
 
+install.packages('rgeos', type="source")
+install.packages('rgdal', type="source")
+
+
 # read in shape data
-poly1 <- readShapePoly('C:/Users/weberra/Downloads/Moz_admin2.shp', IDvar="DISTCODE")
+poly1 <- readShapePoly('C:/Users/rache/Documents/6640/Final Project/Moz_admin.shp', IDvar="DISTCODE")
+#poly1 <- readShapePoly('C:/Users/weberra/Downloads/Moz_admin2.shp', IDvar="DISTCODE")
 plot(poly1)
 
 all5 <- subset(all2, year==2016 & Epiweek==26)
-all6 <- subset(all2, year==2016 & Epiweek==2)
+all6 <- subset(all2, year==2016 & Epiweek==15)
 
 # set rownames same as ID variable
 rownames(all5) <- all5$DISTCODE

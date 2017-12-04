@@ -125,57 +125,6 @@ write.table(temp3, file="total_combo.txt")
 temp3 <- read.table(file="total_combo.txt", sep="")
 temp3$incidence <- temp3$cases/temp3$u5total
 
-# Spread protection down columns
-# temp4 <- temp3 %>% 
-#   group_by(DISTCODE) %>%
-#   mutate(IRSprotn= ifelse(IRSprot == 1, 1, lag(cumsum(IRSprot),k=1, default = 0)),
-#          IRSprotn= ifelse(IRSprot == 1 & IRSprotn == 1, 1, ifelse(IRSprot == 0, 0,IRSmult^(cumsum(IRSprotn)))),
-#          ITNprotn= ifelse(ITNprot == 1, 1, lag(cumsum(ITNprot),k=1, default = 0)),
-#          ITNprotn= ifelse(ITNprot == 1 & ITNprotn == 1, 1, ifelse(ITNprot == 0, 0,ITNmult^(cumsum(ITNprotn))))
-#   )
-# temp4 <- temp3 %>% 
-#   group_by(DISTCODE) %>%
-#   mutate(IRSprotn= ifelse(IRSprot == 1, 1, lag(cumsum(IRSprot),k=1, default = 0)),
-#          IRSprotn= ifelse(IRSprot == 1 & IRSprotn == 1, 1, ifelse(IRSprot == 0, 0,IRSmult^(cumsum(IRSprotn)))),
-#          ITNprotn= ifelse(ITNprot == 1, 1, lag(cumsum(ITNprot),k=1, default = 0)),
-#          ITNprotn= ifelse(ITNprot == 1 & ITNprotn == 1, 1, ifelse(ITNprot == 0, 0,ITNmult^(cumsum(ITNprotn))))
-#   )
-
-
-temp3$ITNprot[is.na(temp3$ITNprot)] <- 0
-
-
-# maybe use double while loop?
-i <- 
-while (DISTCODE )
-
-values <- seq(1,0,-.01)
-ones <- which(temp3$ITNprot == 1)
-for (i in 1:nrow(temp3)){
-  for(j in 1:unique(temp3$DISTCODE))
-  temp3$ITN_int[i] <- ifelse(temp3$ITNprot[i] ==1 & temp3$DISTCODE[i] == rowShift(temp3$DISTCODE,-1), 
-                             1, ifelse(temp3$ITNprot[i] == 0, 0, .99 * rowShift(temp3$ITNprot,-1)))
-}
-
-temp4 <- temp3 %>%
-  group_by(DISTCODE) %>%
-  mutate(IRS_int = ifelse(IRSprot == 1, 1, 0))
-         #IRS_int = ifelse(IRS_int == 1, 1, ifelse(IRS_int == 0, 0, .99 * lag(IRS_int, k=1, default=0))))
-
-temp5 <- temp3 %>%
-  group_by(DISTCODE) %>%
-  mutate(ITN_int = ifelse(ITNprot == 1, 1, 0),
-    ITN_int = ifelse(ITN_int == 1, 1, .99 * rowShift(ITN_int,-1)))
-
-
-# temp4 <- temp3 %>% 
-#   group_by(DISTCODE) %>%
-#   mutate(IRSprotn= ifelse(IRSprot == 1, 1, lag(cumsum(IRSprot),k=1, default = 0)),
-#          IRSprotn= ifelse(IRSprot == 1 & IRSprotn == 1, 1, ifelse(IRSprot == 0, 0,.99*(cumsum(IRSprotn)))),
-#          ITNprotn= ifelse(ITNprot == 1, 1, lag(cumsum(ITNprot),k=1, default = 0)),
-#          ITNprotn= ifelse(ITNprot == 1 & ITNprotn == 1, 1, ifelse(ITNprot == 0, 0,.996*(cumsum(ITNprotn))))
-#   )
-
 rowShift <- function(x, shiftLen = 1L) {
   r <- (1L + shiftLen):(length(x) + shiftLen)
   r[r<1] <- NA
@@ -199,24 +148,24 @@ temp6 <- temp3 %>%
 
 write.table(temp6, file="rainlag.txt")
 temp6 <- read.table(file='rainlag.txt', sep="")
+
 ###########################################################################
-# Plotting
+# Modeling
 
-# basic plot of rainfall and incidence
-ggplot(temp6, aes(x=rain2w, y=cases)) + geom_point()
-
-# Poisson Modeling
 library(lme4)
-m1 <- glm(cases ~ rain2w + DISTCODE + offset(log(u5total)), data=temp6, family="poisson")
+m3 <- glmer(cases ~ rain2w + rain4w + rain8w + (1|District), offset=log(u5total),
+            data=temp6, family = "poisson")
+  # model doesn't converge...?
 
-m3 <- lmer(cases ~ rain2w + (rain2w|District) + rain4w + (rain4w|District) + rain8w
-           + (rain8w|District) + (1|District) + offset(log(u5total)), data=temp6)
-week2 <- lmer(cases ~ rain2w + (1|District) + offset(log(u5total)),
-          data=temp6)
-week4 <- lmer(cases ~ rain4w + (1|District) + offset(log(u5total)),
-          data=temp6)
-week8 <- lmer(cases ~ rain8w + (1|District) + offset(log(u5total)),
-          data=temp6)
+# are the variables correlated?
+library(infotheo)
+cor(temp6[,20:22])
+rain_cor <- rcorr(as.matrix(temp6[,20:22])) # need Hmisc package for rcorr
+rain_cor <- discretize(rain_cor)
+mutinformation(rain_cor)
+round(rain_cor$r, 3)
+  # since there is no correlation, all lag vars belong in the model
+
 library(car) ## For Anova
 summary(m3)
 Anova(m3)
