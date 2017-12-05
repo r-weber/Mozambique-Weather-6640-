@@ -7,6 +7,7 @@
 # this file contains all of the figures I need for the Mozambique malaria report
 
 temp6 <- read.table(file='rainlag.txt', sep="")
+library(ggplot2)
 ##########################################################################
 # Exploratory Graphs  
 p <- ggplot(temp6, aes(x = Epiweek))
@@ -15,6 +16,7 @@ p <- p + geom_smooth(aes(y=raintot*20, color = "Rainfall"))
 p <- p + scale_y_continuous(sec.axis = sec_axis(~./20, name = "Total Rainfall"))
 p <- p + labs(y = "Cases", x = "Epidemiological Week", colour = "Legend")
 p <- p + theme_minimal() + ggtitle("Seasonal Trends") + scale_x_continuous(breaks = seq(1,52,8))
+p <- p + scale_color_manual(values = c("orchid", "dodgerblue"))
 p
 
 # cool but not useful
@@ -31,8 +33,13 @@ ggplot(temp6, aes(x=rain2w, y=cases, color = '2 weeks')) +
   geom_smooth(se=F, size=1.5) +
   geom_smooth(aes(x=rain4w, y=cases, color = '4 weeks'), se=F, size=1.5) +
   geom_smooth(aes(x=rain8w, y=cases, color = '8 weeks'), se=F, size=1.5) +
-  scale_fill_manual(name = "Lag") +
-  scale_color_manual(values = c('dodgerblue', 'cyan4', 'darkorchid'))
+  scale_color_manual(name = "Lag", values = c('dodgerblue', 'cyan3', 'orchid'))
+
+# interventions predicting incidence
+ggplot(temp7, aes(x = ITNprot, y = cases, color= 'ITN')) +
+  geom_smooth( size=1.5) +
+  geom_smooth(aes(x = IRSprot, y = cases, color = 'IRS'), size=1.5) +
+  scale_color_manual(name="Intervention", values = c("dodgerblue", "darkorchid"))
 
 #############################################################
 # maps

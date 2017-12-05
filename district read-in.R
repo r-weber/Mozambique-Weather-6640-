@@ -15,8 +15,8 @@ library(reshape2)
 library(data.table)
 library(ggplot2)
 
-setwd("C:/Users/weberra/Downloads")
-#setwd("C:/Users/rache/Documents/6640/Final Project")
+#setwd("C:/Users/weberra/Downloads")
+setwd("C:/Users/rache/Documents/6640/Final Project")
 
 # import and switch factor to character using library XML
 districts <- readHTMLTable("http://rap.ucar.edu/staff/monaghan/colborn/mozambique/daily/v2/", 
@@ -119,26 +119,15 @@ temp3 <- merge(temp2,
 
 write.table(temp3, file="total_combo.txt")
 
-
-#####################################################################################
+#########################################################################################
 # Create incidence Column
 temp3 <- read.table(file="total_combo.txt", sep="")
 temp3$incidence <- temp3$cases/temp3$u5total
 
-rowShift <- function(x, shiftLen = 1L) {
-  r <- (1L + shiftLen):(length(x) + shiftLen)
-  r[r<1] <- NA
-  return(x[r])
-}
-
-library(data.table)
-
-#########################################################################################
-# Create Lag in Rainfall
-
 #debug(utils:::unpackPkgZip) should only need this piece if antivirus software won't allow install
 #install.packages("Hmisc")
 
+# Create Lag in Rainfall
 library(Hmisc)
 temp6 <- temp3 %>%
   group_by(DISTCODE) %>%
@@ -149,18 +138,66 @@ temp6 <- temp3 %>%
 write.table(temp6, file="rainlag.txt")
 temp6 <- read.table(file='rainlag.txt', sep="")
 
+#####################################################################################
+# Spread Interventions down column
+temp6 <- temp6[!is.na(temp6$DISTCODE),]
+temp6$ITNprot[is.na(temp6$ITNprot)] <- 0
+bound <- NA
+
+# Spread ITN down column
+for(j in unique(temp6$DISTCODE)){
+  data <- temp6[temp6$DISTCODE == j,]
+  for(i in 1:nrow(data)) {
+    if(i == 1) {k <- i
+    } else {k <- i-1
+    }
+    if(data[i,]$ITNprot != 1 & data[k,]$ITNprot > 0) {
+      data[i,]$ITNprot <- data[k,]$ITNprot*.996
+    } else { 
+      data[i,]$ITNprot <- data[i,]$ITNprot 
+    }
+  }
+  bound <- rbind(bound,data)
+}
+bound <- bound[-1,]
+
+# spread IRS down column
+temp7 <- NA
+bound$IRSprot[is.na(bound$IRSprot)] <- 0
+
+for(j in unique(bound$DISTCODE)){
+  data <- bound[bound$DISTCODE == j,]
+  for(i in 1:nrow(data)) {
+    if(i == 1) {k <- i
+    } else {k <- i-1
+    }
+    if(data[i,]$IRSprot != 1 & data[k,]$IRSprot > 0) {
+      data[i,]$IRSprot <- data[k,]$IRSprot*.99
+    } else { 
+      data[i,]$IRSprot <- data[i,]$IRSprot 
+    }
+  }
+  temp7 <- rbind(temp7,data)
+}
+temp7 <- temp7[-1,]
+
+write.table(temp7, file="complete_data.txt")
+
 ###########################################################################
 # Modeling
 
 library(lme4)
 m3 <- glmer(cases ~ rain2w + rain4w + rain8w + (1|District), offset=log(u5total),
-            data=temp6, family = "poisson")
+            data=temp7, family = "poisson")
   # model doesn't converge...?
+
+int_m <- glmer(cases ~ ITNprot + IRSprot + (1|District), offset=log(u5total), 
+               data=temp7, family="poisson")
 
 # are the variables correlated?
 library(infotheo)
 cor(temp6[,20:22])
-rain_cor <- rcorr(as.matrix(temp6[,20:22])) # need Hmisc package for rcorr
+rain_cor <- rcorr(as.matrix(temp7[,20:22])) # need Hmisc package for rcorr
 rain_cor <- discretize(rain_cor)
 mutinformation(rain_cor)
 round(rain_cor$r, 3)
