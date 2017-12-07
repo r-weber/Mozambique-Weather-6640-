@@ -139,6 +139,7 @@ temp6 <- read.table(file='rainlag.txt', sep="")
 
 #####################################################################################
 # Spread Interventions down column
+# the loops only take 2 minutes to run!
 temp6 <- temp6[!is.na(temp6$DISTCODE),]
 temp6$ITNprot[is.na(temp6$ITNprot)] <- 0
 bound <- NA
@@ -198,4 +199,15 @@ temp7$log_u5total <- log(temp7$u5total)
 
 m1 <- glmmPQL(cases ~ rain2w + rain4w + rain8w + offset(u5total), 
               random = ~1|DISTCODE, data = temp7, family = poisson, correlation = corAR1())
+
+itn_model <- glm(cases ~ ITNprot  + (1|DISTCODE), offset = log(u5total), 
+                       data = temp7, family = poisson)
+  # ITN was significant
+
+irs_model<- lme(cases ~ IRSprot, random = ~ 1|DISTCODE, offset = log(u5total), 
+                data = temp7, family = poisson, correlation = corAR1())
+  # irs is significant
+
+plot(irs_model)
+  # model isn't a terrible fit... not great
 
