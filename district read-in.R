@@ -25,10 +25,10 @@ districts <- as.character(districts)
 
 # remove NA in final row
 districts <- districts[-143]
-  #have no malaria cases
+  #has no malaria cases
 
 
-# loop attaches file path, read in each file, pulls the district name, adds 'District' as a new column
+# loop attaches file path, reads in each file, pulls the district name, adds 'District' as a new column
 # and binds each successive district to the last to make one long dataframe
 all_districts <- NULL
 for(i in 1:length(districts)) {
@@ -102,15 +102,15 @@ intervention <- read.csv("intervention.csv", sep=",")
 dri_inc <- read.table(file="districts_incidences.txt", sep="")
 
 temp2 <- merge(dri_inc, 
-               intervention %>% # here we only select the IRS year first 
+               intervention %>% # select IRS year first 
                  select(DISTCODE, IRSyear, IRSepiWeek) %>% # select only IRS 
                  filter(!is.na(IRSyear) & IRSyear > 2009) %>% #Select for Epiyear > 2009
                  rename(year =  IRSyear, Epiweek = IRSepiWeek) %>% # Rename to match
                  mutate(IRSprot = ifelse(!is.na(year), 1, NA)), # Create protection variable 
                by = c("DISTCODE","year","Epiweek"), all = TRUE)
 temp3 <- merge(temp2,
-               intervention %>% # here we only select the IRS year first 
-                 select(DISTCODE, ITNyear, ITNepiWeek) %>% # select only IRS 
+               intervention %>% # select ITN year first 
+                 select(DISTCODE, ITNyear, ITNepiWeek) %>% # select only ITN 
                  filter(!is.na(ITNyear) & ITNyear > 2009) %>% #Select for Epiyear > 2009
                  rename(year =  ITNyear, Epiweek = ITNepiWeek) %>% # Rename to match
                  mutate(ITNprot = ifelse(!is.na(year), 1, NA)), # Create protection variable 
@@ -125,7 +125,6 @@ temp3 <- read.table(file="total_combo.txt", sep="")
 temp3$incidence <- temp3$cases/temp3$u5total
 
 #debug(utils:::unpackPkgZip) should only need this piece if antivirus software won't allow install
-#install.packages("Hmisc")
 
 # Create Lag in Rainfall
 library(Hmisc)
@@ -182,47 +181,21 @@ for(j in unique(bound$DISTCODE)){
 temp7 <- temp7[-1,]
 
 write.table(temp7, file="complete_data.txt")
+temp7 <- read.table(file="complete_data.txt", sep="")
 
 ###########################################################################
 # Modeling
 
+# libraries needed
+library(Hmisc)
+library(MASS)
+library(nlme)
+library(splines)
 library(lme4)
-m3 <- glmer(cases ~ rain2w + rain4w + rain8w + (1|District), offset=log(u5total),
-            data=temp7, family = "poisson")
-  # model doesn't converge...?
 
-int_m <- glmer(cases ~ ITNprot + IRSprot + (1|District), offset=log(u5total), 
-               data=temp7, family="poisson")
+# log transform and normalize variables
+temp7$log_u5total <- log(temp7$u5total)
 
-# are the variables correlated?
-library(infotheo)
-cor(temp6[,20:22])
-rain_cor <- rcorr(as.matrix(temp7[,20:22])) # need Hmisc package for rcorr
-rain_cor <- discretize(rain_cor)
-mutinformation(rain_cor)
-round(rain_cor$r, 3)
-  # since there is no correlation, all lag vars belong in the model
+m1 <- glmmPQL(cases ~ rain2w + rain4w + rain8w + offset(u5total), 
+              random = ~1|DISTCODE, data = temp7, family = poisson, correlation = corAR1())
 
-library(car) ## For Anova
-summary(m3)
-Anova(m3)
-
-pred_2 <- predict(week2, type="response")
-
-#library(effects)
-plot(allEffects(m3))
-ggplot(temp6, aes(x=rain2w, y=incidence))+
-  stat_smooth(method = 'glm', family = 'poisson', 
-              formula = incidence ~ rain2w + (1|DISTCODE), data = temp6) +
-  geom_smooth(col='red', se=F) + geom_point()
-
-plot(temp6$rain2w, temp6$cases)
-lines(pred_2, col= 'blue')
-
-#debug(utils:::unpackPkgZip)
-#install.packages('multcomp')
-library(multcomp)
-tmp <- as.data.frame(confint(glht(week2))$confint)
-tmp$Comparison <- rownames(tmp)
-ggplot(tmp, aes(x = Comparison, y = Estimate, ymin = lwr, ymax = upr)) +
-  geom_errorbar() + geom_point()
