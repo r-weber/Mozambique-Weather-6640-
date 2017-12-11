@@ -19,6 +19,6 @@ final project for BIOS 6640- R and Python for Data Science
   5. tests correlation between rainfall, temperature, and humidity
   6. Makes attempt at modeling all variables together
   
-  Malaria Report: Final report in the form of a pdf. All writing and graphs are my own.
+  ### Final Malaria Report: Final report in the form of a pdf. All writing and graphs are my own.
   
   Collaborators: Chong Kim, Charlie Carpenter, Melissa Wilson
