@@ -8,6 +8,7 @@ setwd("C:/Users/rache/Documents/6640/Final Project")
 temp7 <- read.table(file="complete_data.txt", sep="")
 library(dplyr)
 library(Hmisc)
+library(lme4)
 ############################################################################
 # Create Lag in Rainfall
 temp6 <- temp3 %>%
@@ -63,6 +64,7 @@ temp9 <- temp8 %>%
 
 write.table(temp9, file="actually_complete_data.txt")
 
+temp9 <- read.table(file="actually_complete_data.txt", sep="")
 #########################################################################
 # Model Temperature
 
@@ -118,3 +120,17 @@ cor(temp10$rain2w, temp10$rh2w) #low
 cor(temp10$rain2w, temp10$tavg2w) #low
 cor(temp10$tavg2w, temp10$rh2w) #low
   #since the variables don't have very strong correlation, they could be used together in a model
+
+###########################################################################
+# model all lags together
+
+m1 <- glmer(cases ~ 1 + tavg + tavg4w + raintot + rain4w + ITNprot + 
+              IRSprot + (1|DISTCODE), offset = log(u5total), family = "poisson", data = temp9)
+  # model doesn't converge
+
+m2 <- glmer(cases ~ 1 + tavg4w + rain4w + ITNprot + 
+              IRSprot + (1|DISTCODE), offset = log(u5total), family = "poisson", data = temp9)
+  # model doesn't converge
+
+m3 <- glmer(cases ~ 1 + tavg4w + rain4w + rh4w + (1|DISTCODE), offset = log(u5total), family = "poisson", data = temp9)
+  # model doesn't converge

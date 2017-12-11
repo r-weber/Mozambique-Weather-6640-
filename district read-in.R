@@ -194,20 +194,23 @@ library(nlme)
 library(splines)
 library(lme4)
 
+glmer(cases ~ 1 + tavg)
+
 # log transform and normalize variables
 temp7$log_u5total <- log(temp7$u5total)
 
-m1 <- glmmPQL(cases ~ rain2w + rain4w + rain8w + offset(u5total), 
+m1 <- glmmPQL(cases ~ 1 + rain2w + rain4w + rain8w + offset(u5total), 
               random = ~1|DISTCODE, data = temp7, family = poisson, correlation = corAR1())
+  # need to supply starting values?
 
 itn_model <- glm(cases ~ ITNprot  + (1|DISTCODE), offset = log(u5total), 
                        data = temp7, family = poisson)
-  # ITN was significant
+  # ITN is significant
 
 irs_model<- lme(cases ~ IRSprot, random = ~ 1|DISTCODE, offset = log(u5total), 
                 data = temp7, family = poisson, correlation = corAR1())
-  # irs is significant
+  # IRS is significant
 
 plot(irs_model)
-  # model isn't a terrible fit... not great
+  # model isn't a terrible fit...but not great
 
