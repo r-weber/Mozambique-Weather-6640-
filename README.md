@@ -1,5 +1,5 @@
 # Mozambique-Weather-6640-
-final project for BIOS 6640- R and Python for Data Science
+final project for BIOS 6640-R and Python for Data Science
 
 ## District read-in:
   1. pulls district files from online and converts them to one long dataframe
